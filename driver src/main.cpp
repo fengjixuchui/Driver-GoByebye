@@ -85,7 +85,7 @@ NTSTATUS callback( void* context, void* call_reason, void* key_data )
 							}
 						case operation_base:
 							{
-								if (utils::system_module(L"battleye.sys")) 
+								if (utils::system_module(L"bedaisy.sys")) 
 								{
 									KAPC_STATE apc;
 									KeStackAttachProcess(remote_process.get(), &apc);
