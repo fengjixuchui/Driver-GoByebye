@@ -85,45 +85,10 @@ NTSTATUS callback( void* context, void* call_reason, void* key_data )
 							}
 						case operation_base:
 							{
-								if (utils::system_module(L"bedaisy.sys")) 
-								{
-									KAPC_STATE apc;
-									KeStackAttachProcess(remote_process.get(), &apc);
+								operation request{ };
+								request.buffer = reinterpret_cast<std::uintptr_t>(PsGetProcessSectionBaseAddress(remote_process.get()));
 
-									PPEB pPeb = PsGetProcessPeb(remote_process.get());
-
-									if (!pPeb) break;
-									if (!pPeb->Ldr) break;
-
-									UNICODE_STRING moduleNameUnicode = utils::CharToUnicode(operation_data->module_name);
-
-									for (PLIST_ENTRY pListEntry = pPeb->Ldr->InLoadOrderLinks.Flink;
-										pListEntry != &pPeb->Ldr->InLoadOrderLinks;
-										pListEntry = pListEntry->Flink)
-									{
-										PLDR_DATA_TABLE_ENTRY pEntry = CONTAINING_RECORD(pListEntry, LDR_DATA_TABLE_ENTRY, InLoadOrderLinks);
-
-										if (RtlCompareUnicodeString(&pEntry->BaseDllName, &moduleNameUnicode, TRUE) == 0) {
-											void* output = pEntry->DllBase;
-
-											KeUnstackDetachProcess(&apc);
-
-											operation request{ };
-											request.buffer = reinterpret_cast<std::uintptr_t>(output);
-											write_to_local_memory(local_process.get(), &request, reinterpret_cast<void*>(operation_data_cmd->operation_address), sizeof(operation));
-
-											break;
-										}
-									}
-
-									KeUnstackDetachProcess(&apc);
-								}
-								else {
-									operation request{ };
-									request.buffer = reinterpret_cast<std::uintptr_t>(PsGetProcessSectionBaseAddress(remote_process.get()));
-
-									write_to_local_memory(local_process.get(), &request, reinterpret_cast<void*>(operation_data_cmd->operation_address), sizeof(operation));
-								}
+								write_to_local_memory(local_process.get(), &request, reinterpret_cast<void*>(operation_data_cmd->operation_address), sizeof(operation));
 								break;
 							}
 						case operation_protect:
@@ -223,7 +188,7 @@ NTSTATUS driver_start()
 	if (!ntoskrnl_base)
 		return STATUS_UNSUCCESSFUL;
 
-	if (utils::system_module(L"easyanticheat.sys") || utils::system_module(L"battleye.sys"))
+	if (utils::system_module(L"easyanticheat.sys") || utils::system_module(L"bedaisy.sys"))
 		return STATUS_UNSUCCESSFUL;
 
 	const wchar_t* images[5] = { L"ndis.sys", L"ntfs.sys", L"tcpip.sys", L"fltmgr.sys", L"dxgkrnl.sys" };
